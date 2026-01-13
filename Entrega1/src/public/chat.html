@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Pereda 41</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">✨ Pereda 41</h1>
+            <div class="nav-menu">
+                <span id="userName" class="nav-user"></span>
+                <a href="products.html" class="btn btn-secondary">← Volver a Servicios</a>
+                <button id="logoutBtn" class="btn btn-secondary">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>💬 Chat en Vivo</h2>
+                <p id="chatSubtitle">Conectando...</p>
+            </div>
+
+            <div id="messagesContainer" class="messages-container">
+                <div class="loading">Cargando mensajes...</div>
+            </div>
+
+            <form id="messageForm" class="message-form">
+                <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." required autocomplete="off">
+                <button type="submit" class="btn btn-primary">Enviar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        if (!token || !user) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        let socket;
+        let currentChatId;
+        let isConnected = false;
+
+        
+        try {
+            socket = io({
+                auth: { token }
+            });
+
+            socket.on('connect', () => {
+                console.log('✅ Conectado al chat');
+                isConnected = true;
+                document.getElementById('chatSubtitle').textContent = 
+                    user.role === 'admin' ? 'Panel de Administrador' : 'Estás conectado con nuestro equipo';
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('❌ Error de conexión:', error.message);
+                document.getElementById('chatSubtitle').textContent = 'Error al conectar. Recargando...';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            });
+
+            socket.on('chat_ready', (data) => {
+                currentChatId = data.chatId;
+                console.log('Chat ID:', currentChatId);
+                loadMessages(currentChatId);
+            });
+
+            socket.on('receive_message', (msg) => {
+                console.log('Mensaje recibido:', msg);
+                displayMessage(msg);
+            });
+
+            socket.on('error', (error) => {
+                console.error('Error del servidor:', error);
+                alert(error.message || 'Error al procesar la solicitud');
+            });
+
+        } catch (error) {
+            console.error('Error al inicializar socket:', error);
+            alert('Error al conectar con el servidor');
+        }
+
+        async function loadMessages(chatId) {
+            try {
+                const response = await fetch(`/api/chats/${chatId}/messages`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar mensajes');
+                }
+
+                const messages = await response.json();
+                
+                const container = document.getElementById('messagesContainer');
+                container.innerHTML = '';
+
+                if (messages.length === 0) {
+                    container.innerHTML = '<div class="no-messages">No hay mensajes aún. ¡Inicia la conversación!</div>';
+                } else {
+                    messages.forEach(msg => displayMessage(msg));
+                }
+                
+                scrollToBottom();
+            } catch (error) {
+                console.error('Error al cargar mensajes:', error);
+                document.getElementById('messagesContainer').innerHTML = 
+                    '<div class="error-message">Error al cargar mensajes. Intenta recargar la página.</div>';
+            }
+        }
+
+        function displayMessage(msg) {
+            const container = document.getElementById('messagesContainer');
+            
+           
+            const noMessages = container.querySelector('.no-messages');
+            if (noMessages) {
+                noMessages.remove();
+            }
+
+            const loading = container.querySelector('.loading');
+            if (loading) {
+                loading.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            
+            const isOwnMessage = msg.senderId === user.id;
+            messageDiv.className = `message ${isOwnMessage ? 'message-own' : 'message-other'}`;
+            
+            const time = new Date(msg.createdAt).toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <strong>${escapeHtml(msg.senderName)}</strong>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-text">${escapeHtml(msg.message)}</div>
+            `;
+
+            container.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+       
+        document.getElementById('messageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (!isConnected) {
+                alert('No estás conectado al chat. Espera un momento...');
+                return;
+            }
+
+            if (!currentChatId) {
+                alert('El chat no está listo. Espera un momento...');
+                return;
+            }
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (message) {
+                console.log('Enviando mensaje:', { chatId: currentChatId, message });
+                socket.emit('send_message', {
+                    chatId: currentChatId,
+                    message
+                });
+                input.value = '';
+            }
+        });
+
+       
+        if (user.role === 'admin') {
+            setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/chats/my-chat', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const chat = await response.json();
+                    currentChatId = chat._id;
+                    loadMessages(currentChatId);
+                } catch (error) {
+                    console.error('Error al obtener chat:', error);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

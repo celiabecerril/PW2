@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios - Pereda 41</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">✨ Pereda 41</h1>
+            <div class="nav-menu">
+                <span id="userName" class="nav-user"></span>
+                <a href="chat.html" class="btn btn-chat">💬 Chat</a>
+                <button id="logoutBtn" class="btn btn-secondary">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="products-header">
+            <h2>Nuestros Servicios</h2>
+            <button id="addProductBtn" class="btn btn-primary" style="display: none;">
+                ➕ Agregar Servicio
+            </button>
+        </div>
+
+        <div id="productsGrid" class="products-grid">
+            <div class="loading">Cargando servicios</div>
+        </div>
+    </div>
+
+  
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Agregar Servicio</h2>
+            <form id="productForm" enctype="multipart/form-data">
+                <input type="hidden" id="productId">
+                
+                <!-- Preview de imagen -->
+                <div class="form-group">
+                    <div id="imagePreview" class="image-preview">
+                        <img id="previewImg" src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800" alt="Preview">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="productImage">📸 Imagen del Servicio</label>
+                    <input type="file" id="productImage" accept="image/*">
+                    <small>Tamaño máximo: 5MB | Formatos: JPG, PNG, WebP</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productName">Nombre del Servicio</label>
+                    <input type="text" id="productName" required placeholder="Ej: Corte de Cabello">
+                </div>
+
+                <div class="form-group">
+                    <label for="productDescription">Descripción</label>
+                    <textarea id="productDescription" required rows="3" placeholder="Describe el servicio..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPrice">Precio (€)</label>
+                        <input type="number" id="productPrice" required min="0" step="0.01" placeholder="25.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productDuration">Duración</label>
+                        <input type="text" id="productDuration" required placeholder="45 min">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="productCategory">Categoría</label>
+                    <select id="productCategory" required>
+                        <option value="Cortes">Cortes</option>
+                        <option value="Coloración">Coloración</option>
+                        <option value="Peinados">Peinados</option>
+                        <option value="Tratamientos">Tratamientos</option>
+                        <option value="Manicura y Pedicura">Manicura y Pedicura</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                </div>
+
+                <div id="uploadProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <p style="text-align: center; color: var(--text-secondary);">Subiendo imagen...</p>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">💾 Guardar</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>
